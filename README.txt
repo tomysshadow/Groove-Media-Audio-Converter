@@ -1,4 +1,4 @@
-Groove Media Audio Converter 0.9.4
+Groove Media Audio Converter 0.9.5
 By Anthony Kleine
 
 	Converts the Groove Media Audio (GMA) codec used by 3D Groove GX to PCM.

@@ -86,15 +86,9 @@ int __thiscall MemoryFile::Read::decrementInstanceCount() {
 MemoryFile::Read* __thiscall MemoryFile::Read::deleteInstance(bool free) {
 	consoleLog("Deleting Instance of Memory File Read");
 
-	// TODO: what is IDA telling me here? does this inherit from std::ios_base?
-	// this is what the decompilation says, but it causes an exception...
-	delete this;
-
-	/*
 	if (free) {
 		delete this;
 	}
-	*/
 
 	return this;
 }

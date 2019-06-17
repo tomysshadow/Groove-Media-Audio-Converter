@@ -43,7 +43,7 @@ bool RegisterInterface::setupExtensionCallback(ID mediaFactoryID, bool unknown, 
 	ID id = DEFAULT_ID;
 	Error err = 0;
 	// please don't delete me
-	memoryFromFile.read.instanceCount = 1;
+	memoryFromFile.read.incrementInstanceCount();
 
 	if (!memoryFromFile.open(fromFileName)) {
 		consoleLog("Failed to Open Memory File", true, false, true);
@@ -58,6 +58,7 @@ bool RegisterInterface::setupExtensionCallback(ID mediaFactoryID, bool unknown, 
 		if (!memoryFromFile.close()) {
 			consoleLog("Failed to Close Memory File", true, false, true);
 		}
+		memoryFromFile.read.decrementInstanceCount();
 		return false;
 	}
 
@@ -70,6 +71,7 @@ bool RegisterInterface::setupExtensionCallback(ID mediaFactoryID, bool unknown, 
 		if (!memoryFromFile.close()) {
 			consoleLog("Failed to Close Memory File", true, false, true);
 		}
+		memoryFromFile.read.decrementInstanceCount();
 		return false;
 	}
 
@@ -84,6 +86,7 @@ bool RegisterInterface::setupExtensionCallback(ID mediaFactoryID, bool unknown, 
 		if (!memoryFromFile.close()) {
 			consoleLog("Failed to Close Memory File", true, false, true);
 		}
+		memoryFromFile.read.decrementInstanceCount();
 		return false;
 	}
 
@@ -96,6 +99,7 @@ bool RegisterInterface::setupExtensionCallback(ID mediaFactoryID, bool unknown, 
 		if (!memoryFromFile.close()) {
 			consoleLog("Failed to Close Memory File", true, false, true);
 		}
+		memoryFromFile.read.decrementInstanceCount();
 		return false;
 	}
 
@@ -107,6 +111,7 @@ bool RegisterInterface::setupExtensionCallback(ID mediaFactoryID, bool unknown, 
 		return false;
 	}
 
+	memoryFromFile.read.decrementInstanceCount();
 	CWaveFile waveFile;
 	WAVEFORMATEX waveFormatEx;
 	waveFormatEx.wFormatTag = WAVE_FORMAT_PCM;

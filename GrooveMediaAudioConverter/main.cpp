@@ -53,7 +53,7 @@ typedef bool(_cdecl *_SetupExtension)(int, MediaFactoryInterface*, RegisterInter
 typedef bool(_cdecl *_CloseExtension)(int, MediaFactoryInterface*);
 
 int main(int argc, char** argv) {
-	consoleLog("Groove Media Audio Converter 0.9.4");
+	consoleLog("Groove Media Audio Converter 0.9.5");
 	consoleLog("By Anthony Kleine", 2);
 
 	if (argc < 3 || stringsEqual(argv[1], "--help")) {
