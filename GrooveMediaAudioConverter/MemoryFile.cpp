@@ -86,6 +86,10 @@ int __thiscall MemoryFile::Read::decrementInstanceCount() {
 MemoryFile::Read* __thiscall MemoryFile::Read::deleteInstance(bool free) {
 	consoleLog("Deleting Instance of Memory File Read");
 
+	start = 0;
+	filePointer = 0;
+	length = 0;
+
 	if (free) {
 		delete this;
 	}
