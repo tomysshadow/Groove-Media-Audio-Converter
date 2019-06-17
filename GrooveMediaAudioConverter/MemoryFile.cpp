@@ -1,5 +1,6 @@
 #include "MemoryFile.h"
 #include "main.h"
+#include <windows.h>
 
 bool MemoryFile::open(LPCSTR fileName) {
 	file = CreateFile(fileName, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
