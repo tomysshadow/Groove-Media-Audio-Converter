@@ -90,7 +90,7 @@ bool RegisterInterface::setupExtensionCallback(ID mediaFactoryID, bool unknown, 
 	if (!grooveCompressAudioPointer->getData(data, sizeToWrite)) {
 		consoleLog("Failed to Get Data", true, false, true);
 		delete[] data;
-		data = 0;
+		data = NULL;
 		grooveCompressAudioPointer = gmaCodecMediaFactory->destroyInstance(1);
 
 		if (!memoryFromFile.close()) {
@@ -102,7 +102,7 @@ bool RegisterInterface::setupExtensionCallback(ID mediaFactoryID, bool unknown, 
 	if (!memoryFromFile.close()) {
 		consoleLog("Failed to Close Memory File", true, false, true);
 		delete[] data;
-		data = 0;
+		data = NULL;
 		grooveCompressAudioPointer = gmaCodecMediaFactory->destroyInstance(1);
 		return false;
 	}
@@ -120,7 +120,7 @@ bool RegisterInterface::setupExtensionCallback(ID mediaFactoryID, bool unknown, 
 	if (FAILED(waveFile.Open(CA2W(toFileName), &waveFormatEx, NULL))) {
 		consoleLog("Failed to Open Wave File", true, false, true);
 		delete[] data;
-		data = 0;
+		data = NULL;
 		grooveCompressAudioPointer = gmaCodecMediaFactory->destroyInstance(1);
 		return false;
 	}
@@ -130,7 +130,7 @@ bool RegisterInterface::setupExtensionCallback(ID mediaFactoryID, bool unknown, 
 	if (FAILED(waveFile.Write(sizeToWrite, data, &sizeWrote)) || sizeToWrite != sizeWrote) {
 		consoleLog("Failed to Write Wave File", true, false, true);
 		delete[] data;
-		data = 0;
+		data = NULL;
 		grooveCompressAudioPointer = gmaCodecMediaFactory->destroyInstance(1);
 		return false;
 	}
@@ -138,13 +138,13 @@ bool RegisterInterface::setupExtensionCallback(ID mediaFactoryID, bool unknown, 
 	if (FAILED(waveFile.Close())) {
 		consoleLog("Failed to Close Wave File", true, false, true);
 		delete[] data;
-		data = 0;
+		data = NULL;
 		grooveCompressAudioPointer = gmaCodecMediaFactory->destroyInstance(1);
 		return false;
 	}
 
 	delete[] data;
-	data = 0;
+	data = NULL;
 	grooveCompressAudioPointer = gmaCodecMediaFactory->destroyInstance(1);
 	return true;
 };

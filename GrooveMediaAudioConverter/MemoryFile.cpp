@@ -17,6 +17,11 @@ bool MemoryFile::open(LPCSTR fileName) {
 		return false;
 	}
 
+	if (buffer) {
+		delete[] buffer;
+		buffer = NULL;
+	}
+
 	bufferSize = fileSize.QuadPart;
 	buffer = new BYTE[bufferSize];
 
@@ -30,7 +35,7 @@ bool MemoryFile::open(LPCSTR fileName) {
 	if (!ReadFile(file, buffer, bufferSize, &numberOfBytesCopied, NULL) || !buffer || bufferSize != numberOfBytesCopied) {
 		consoleLog("Failed to Read File", true, false, true);
 		delete[] buffer;
-		buffer = 0;
+		buffer = NULL;
 		return false;
 	}
 
@@ -42,8 +47,11 @@ bool MemoryFile::open(LPCSTR fileName) {
 }
 
 bool MemoryFile::close() {
-	delete[] buffer;
-	buffer = 0;
+	if (buffer) {
+		delete[] buffer;
+		buffer = NULL;
+	}
+
 	bufferSize = 0;
 
 	if (file || file != INVALID_HANDLE_VALUE) {

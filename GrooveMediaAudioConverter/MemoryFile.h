@@ -31,7 +31,7 @@ public:
 	};
 
 	HANDLE file;
-	SIZE_T bufferSize;
-	BYTE* buffer;
+	SIZE_T bufferSize = 0;
+	BYTE* buffer = NULL;
 	Read read;
 };
