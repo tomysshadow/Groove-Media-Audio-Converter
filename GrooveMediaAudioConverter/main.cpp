@@ -140,4 +140,4 @@ int main(int argc, char** argv) {
 	return 0;
 }
 
-// "Jesus replied 'Love the Lord your God with all your heart and will all your soul and with all your mind.'" - Matthew 22:37
+// "Jesus replied 'Love the Lord your God with all your heart and with all your soul and with all your mind.'" - Matthew 22:37
