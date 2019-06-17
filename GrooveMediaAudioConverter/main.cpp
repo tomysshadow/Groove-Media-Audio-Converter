@@ -1,393 +1,51 @@
 #include "main.h"
+#include "GrooveExtensionIdentifier.h"
+#include "MediaFactoryInterface.h"
+#include "RegisterInterface.h"
+#include <windows.h>
 #include <string.h>
 #include <ios>
-#include <windows.h>
-#include <atlbase.h>
 
-bool MemoryFile::open(LPCSTR fileName) {
-	file = CreateFile(fileName, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-
-	if (!file || file == INVALID_HANDLE_VALUE) {
-		consoleLog("Failed to Create File", true, false, true);
-		return false;
-	}
-
-	LARGE_INTEGER fileSize;
-
-	if (!GetFileSizeEx(file, &fileSize)) {
-		consoleLog("Failed to Get File Size Ex", true, false, true);
-		return false;
-	}
-
-	bufferSize = fileSize.QuadPart;
-	buffer = new BYTE[bufferSize];
-
-	if (!buffer) {
-		consoleLog("Failed to Allocate buffer", true, false, true);
-		return false;
-	}
-
-	SIZE_T numberOfBytesCopied = 0;
-
-	if (!ReadFile(file, buffer, bufferSize, &numberOfBytesCopied, NULL) || !buffer || bufferSize != numberOfBytesCopied) {
-		consoleLog("Failed to Read File", true, false, true);
-		delete[] buffer;
-		buffer = 0;
-		return false;
-	}
-
-	read.start = buffer;
-	read.filePointer = buffer;
-	read.length = bufferSize;
-
-	return true;
+inline bool stringsEqual(const char* leftHandSide, const char* rightHandSide) {
+	return !strcmp(leftHandSide, rightHandSide);
 }
 
-bool MemoryFile::close() {
-	delete[] buffer;
-	buffer = 0;
-	bufferSize = 0;
+inline bool stringsEqualWide(const wchar_t* leftHandSide, const wchar_t* rightHandSide) {
+	return !wcscmp(leftHandSide, rightHandSide);
+}
 
-	if (file || file != INVALID_HANDLE_VALUE) {
-		if (!CloseHandle(file)) {
-			consoleLog("Failed to Close File Handle", true, false, true);
-			return false;
+void consoleLog(const char *buffer, int newline, int tab, bool err) {
+	for (int i = 0; i < tab; i++) {
+		consoleLog("\t", false, false, err);
+	}
+
+	if (!err) {
+		std::cout << buffer;
+
+		for (int i = 0; i < newline; i++) {
+			std::cout << std::endl;
+		}
+	} else {
+		std::cerr << buffer;
+
+		for (int i = 0; i < newline; i++) {
+			std::cerr << std::endl;
 		}
 	}
-
-	return true;
 }
 
-int __thiscall MemoryFile::Read::incrementInstanceCount() {
-	consoleLog("Incrementing Instance Count of Memory File Read");
+void help() {
+		consoleLog("Converts the Groove Media Audio (GMA) codec used by 3D Groove GX to PCM.", 2, 1);
 
-	return ++instanceCount;
+		consoleLog("Groove Media Audio is a proprietary audio codec by OTOY with 2x better compression than MP3. The codec may be used in WAVE Audio Files.", 2, 1);
+
+		consoleLog("Requires the Groove Media Audio Extension.", 2, 1);
+
+	consoleLog("Usage: GrooveMediaAudioConverter runaway.WAV runaway_converted.WAV");
 }
 
-int __thiscall MemoryFile::Read::decrementInstanceCount() {
-	consoleLog("Decrementing Instance Count of Memory File Read");
-
-	instanceCount--;
-
-	if (!instanceCount) {
-		deleteInstance(1);
-		return 0;
-	}
-
-	return instanceCount;
-}
-
-MemoryFile::Read* __thiscall MemoryFile::Read::deleteInstance(bool free) {
-	consoleLog("Deleting Instance of Memory File Read");
-
-	// TODO: what is IDA telling me here? does this inherit from std::ios_base?
-	// this is what the decompilation says, but it causes an exception...
-	delete this;
-
-	/*
-	if (free) {
-		delete this;
-	}
-	*/
-
-	return this;
-}
-
-size_t __thiscall MemoryFile::Read::getLength() {
-	consoleLog("Getting Length of Memory File Read");
-
-	if (!start) {
-		return -1;
-	}
-
-	return length;
-}
-
-size_t __thiscall MemoryFile::Read::getLengthUnsafe() {
-	consoleLog("Getting Length Unsafe of Memory File Read");
-
-	return length;
-}
-
-size_t __thiscall MemoryFile::Read::getFilePos() {
-	consoleLog("Getting File Pos of Memory File Read");
-
-	if (!start) {
-		return -1;
-	}
-
-	return filePointer - start;
-}
-
-size_t __thiscall MemoryFile::Read::setFilePos(size_t filePos, REL_FILE_POS relFilePos) {
-	consoleLog("Setting File Pos of Memory File Read");
-
-	if (!start) {
-		return -1;
-	}
-
-	size_t filePosOld = filePointer - start;
-	size_t rel = 0;
-
-	switch (relFilePos) {
-		case REL_FILE_POS_START:
-		break;
-		case REL_FILE_POS_RELATIVE:
-		rel = filePosOld;
-		break;
-		case REL_FILE_POS_END:
-		rel = length;
-		break;
-		default:
-		return -1;
-	}
-
-	filePos = rel + filePos;
-
-	if (filePos < 0 || filePos > length) {
-		return -1;
-	}
-
-	filePointer = start + filePos;
-
-	return filePosOld;
-}
-
-size_t __thiscall MemoryFile::Read::readCount(unsigned char* destination, size_t count) {
-	consoleLog("Reading Count of Memory File Read");
-
-	if (!start) {
-		return -1;
-	}
-
-	size_t maxCount = start + length - filePointer;
-
-	if (maxCount < count) {
-		count = maxCount;
-	}
-
-	if (count > 0) {
-		if (memcpy_s(destination, count, filePointer, count)) {
-			return -1;
-		}
-
-		filePointer += count;
-	}
-
-	return count;
-}
-
-unsigned char* __thiscall MemoryFile::Read::readRange(size_t posStart, size_t posEnd) {
-	consoleLog("Reading Range of Memory File Read");
-
-	unsigned char* range = 0;
-
-	if (!start || posEnd <= posStart || posStart > length) {
-		return range;
-	}
-
-	if (posEnd != -1) {
-		if (posEnd > length) {
-			return range;
-		}
-
-		posEnd = length;
-	}
-
-	size_t count = posEnd - posStart;
-	range = new unsigned char[count];
-
-	if (!range) {
-		consoleLog("Failed to Allocate range", true, false, true);
-		return range;
-	}
-
-	if (memcpy_s(range, count, start + posStart, count)) {
-		delete[] range;
-		range = 0;
-		return range;
-	}
-
-	return range;
-}
-
-void MemoryFile::Read::doNothing() {
-	consoleLog("Doing Nothing with Memory File Read");
-
-	return;
-}
-
-int __thiscall MemoryFile::Read::getFlags(int unknown) {
-	consoleLog("Getting Flags of Memory File Read");
-
-	if (start) {
-		return 11;
-	}
-
-	return 3;
-}
-
-void MediaFactoryInterface::unknown() {
-	consoleLog("Unknown of Media Factory Interface");
-	return;
-}
-
-bool MediaFactoryInterface::setupExtensionCallback(unsigned char* unknown, RegisterInterface* registerInterface) {
-	consoleLog("Setting Up Extension Callback of Media Factory Interface");
-	return true;
-}
-
-void MediaFactoryInterface::closeExtensionCallback(ID mediaFactoryID) {
-	consoleLog("Closing Extension Callback of Media Factory Interface");
-	return;
-}
-
-void RegisterInterface::unknown(bool unknown) {
-	consoleLog("Unknown of Register Interface");
-	return;
-}
-
-bool RegisterInterface::setupExtensionCallback(ID mediaFactoryID, bool unknown, GMACodecMediaFactory* gmaCodecMediaFactory) {
-	consoleLog("Setting Up Extension Callback of Register Interface");
-
-	if (!gmaCodecMediaFactory) {
-		consoleLog("GMA Codec Media Factory cannot be NULL", true, false, true);
-		return false;
-	}
-
-	if (!fromFileName) {
-		consoleLog("From File Name cannot be NULL", true, false, true);
-		return false;
-	}
-
-	if (!toFileName) {
-		consoleLog("To File Name cannot be NULL", true, false, true);
-		return false;
-	}
-
-	const ID GMA_CODEC_MEDIA_FACTORY_ID = {0x6F08D354, 0x4EB31ABE, 0x3A95FFAF, 0x57684665};
-
-	for (size_t i = 0; i < ID_SIZE; i++) {
-		if (mediaFactoryID[i] != GMA_CODEC_MEDIA_FACTORY_ID[i]) {
-			consoleLog("GMA Codec Media Factory ID Does Not Match", true, false, true);
-			return false;
-		}
-	}
-
-	MemoryFile memoryFromFile;
-	ID id = DEFAULT_ID;
-	Error err = 0;
-	// please don't delete me
-	memoryFromFile.read.instanceCount = 1;
-
-	if (!memoryFromFile.open(fromFileName)) {
-		consoleLog("Failed to Open Memory File", true, false, true);
-		return false;
-	}
-
-	GrooveCompressAudio* grooveCompressAudioPointer = gmaCodecMediaFactory->createInstance(&memoryFromFile.read, id, 0, &err);
-
-	if (err || !grooveCompressAudioPointer) {
-		consoleLog("Failed to Create Instance of GMA Codec Media Factory", true, false, true);
-
-		if (!memoryFromFile.close()) {
-			consoleLog("Failed to Close Memory File", true, false, true);
-		}
-		return false;
-	}
-
-	GrooveCompressAudioFormat grooveCompressAudioFormat;
-
-	if (!grooveCompressAudioPointer->getFormat(&grooveCompressAudioFormat)) {
-		consoleLog("Failed to Get Format", true, false, true);
-		grooveCompressAudioPointer = gmaCodecMediaFactory->destroyInstance(1);
-
-		if (!memoryFromFile.close()) {
-			consoleLog("Failed to Close Memory File", true, false, true);
-		}
-		return false;
-	}
-
-	UINT sizeToWrite = grooveCompressAudioFormat.size;
-	// data is a terrible variable name - but I didn't choose the name, Microsoft/IBM did. And 3D Groove!
-	BYTE* data = new BYTE[sizeToWrite];
-
-	if (!data) {
-		consoleLog("Failed to Allocate data", true, false, true);
-		grooveCompressAudioPointer = gmaCodecMediaFactory->destroyInstance(1);
-
-		if (!memoryFromFile.close()) {
-			consoleLog("Failed to Close Memory File", true, false, true);
-		}
-		return false;
-	}
-
-	if (!grooveCompressAudioPointer->getData(data, sizeToWrite)) {
-		consoleLog("Failed to Get Data", true, false, true);
-		delete[] data;
-		data = 0;
-		grooveCompressAudioPointer = gmaCodecMediaFactory->destroyInstance(1);
-
-		if (!memoryFromFile.close()) {
-			consoleLog("Failed to Close Memory File", true, false, true);
-		}
-		return false;
-	}
-
-	if (!memoryFromFile.close()) {
-		consoleLog("Failed to Close Memory File", true, false, true);
-		delete[] data;
-		data = 0;
-		grooveCompressAudioPointer = gmaCodecMediaFactory->destroyInstance(1);
-		return false;
-	}
-
-	CWaveFile waveFile;
-	WAVEFORMATEX waveFormatEx;
-	waveFormatEx.wFormatTag = WAVE_FORMAT_PCM;
-	waveFormatEx.nChannels = grooveCompressAudioFormat.channels;
-	waveFormatEx.nSamplesPerSec = grooveCompressAudioFormat.samplesPerSec;
-	waveFormatEx.wBitsPerSample = grooveCompressAudioFormat.bitsPerSample;
-	waveFormatEx.nBlockAlign = waveFormatEx.nChannels * (waveFormatEx.wBitsPerSample / 8);
-	waveFormatEx.nAvgBytesPerSec = waveFormatEx.nSamplesPerSec * waveFormatEx.nBlockAlign;
-	waveFormatEx.cbSize = 0;
-
-	if (FAILED(waveFile.Open(CA2W(toFileName), &waveFormatEx, NULL))) {
-		consoleLog("Failed to Open Wave File", true, false, true);
-		delete[] data;
-		data = 0;
-		grooveCompressAudioPointer = gmaCodecMediaFactory->destroyInstance(1);
-		return false;
-	}
-
-	UINT sizeWrote = 0;
-
-	if (FAILED(waveFile.Write(sizeToWrite, data, &sizeWrote)) || sizeToWrite != sizeWrote) {
-		consoleLog("Failed to Write Wave File", true, false, true);
-		delete[] data;
-		data = 0;
-		grooveCompressAudioPointer = gmaCodecMediaFactory->destroyInstance(1);
-		return false;
-	}
-
-	if (FAILED(waveFile.Close())) {
-		consoleLog("Failed to Close Wave File", true, false, true);
-		delete[] data;
-		data = 0;
-		grooveCompressAudioPointer = gmaCodecMediaFactory->destroyInstance(1);
-		return false;
-	}
-
-	delete[] data;
-	data = 0;
-	grooveCompressAudioPointer = gmaCodecMediaFactory->destroyInstance(1);
-	return true;
-};
-
-void RegisterInterface::closeExtensionCallback() {
-	consoleLog("Closing Extension Callback of Media Factory Interface");
-	return;
-}
+LPCSTR fromFileName;
+LPCSTR toFileName;
 
 typedef float(_cdecl *_Identify)(GrooveExtensionIdentifier*);
 typedef bool(*_Install)();
@@ -395,7 +53,7 @@ typedef bool(_cdecl *_SetupExtension)(int, MediaFactoryInterface*, RegisterInter
 typedef bool(_cdecl *_CloseExtension)(int, MediaFactoryInterface*);
 
 int main(int argc, char** argv) {
-	consoleLog("Groove Media Audio Converter 0.9.1");
+	consoleLog("Groove Media Audio Converter 0.9.2");
 	consoleLog("By Anthony Kleine", 2);
 
 	if (argc < 3 || stringsEqual(argv[1], "--help")) {
@@ -481,3 +139,5 @@ int main(int argc, char** argv) {
 
 	return 0;
 }
+
+// "Jesus replied 'Love the Lord your God with all your heart and will all your soul and with all your mind.'" - Matthew 22:37

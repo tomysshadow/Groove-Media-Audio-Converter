@@ -90,6 +90,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;winmm.lib;vcruntime.lib;dsound.lib;DXUTOpt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <IgnoreSpecificDefaultLibraries>MSVCRT;</IgnoreSpecificDefaultLibraries>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -115,6 +116,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <SubSystem>Console</SubSystem>
       <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;winmm.lib;vcruntime.lib;dsound.lib;DXUTOpt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <IgnoreSpecificDefaultLibraries>MSVCRT;</IgnoreSpecificDefaultLibraries>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -133,9 +135,18 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="MediaFactoryInterface.cpp" />
+    <ClCompile Include="MemoryFile.cpp" />
+    <ClCompile Include="RegisterInterface.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="GMACodecMediaFactory.h" />
+    <ClInclude Include="GrooveCompressAudio.h" />
+    <ClInclude Include="GrooveExtensionIdentifier.h" />
     <ClInclude Include="main.h" />
+    <ClInclude Include="MediaFactoryInterface.h" />
+    <ClInclude Include="MemoryFile.h" />
+    <ClInclude Include="RegisterInterface.h" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="..\README.txt" />
