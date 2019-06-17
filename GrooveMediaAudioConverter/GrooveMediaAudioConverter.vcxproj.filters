@@ -25,6 +25,6 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <Text Include="README.txt" />
+    <Text Include="..\README.txt" />
   </ItemGroup>
 </Project>
