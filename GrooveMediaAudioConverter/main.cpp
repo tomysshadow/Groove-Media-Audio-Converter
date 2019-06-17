@@ -308,26 +308,6 @@ bool RegisterInterface::setupExtensionCallback(ID mediaFactoryID, bool unknown, 
 		return false;
 	}
 
-	CWaveFile waveFile;
-	WAVEFORMATEX waveFormatEx;
-	waveFormatEx.wFormatTag = WAVE_FORMAT_PCM;
-	waveFormatEx.nChannels = grooveCompressAudioFormat.channels;
-	waveFormatEx.nSamplesPerSec = grooveCompressAudioFormat.samplesPerSec;
-	waveFormatEx.wBitsPerSample = grooveCompressAudioFormat.bitsPerSample;
-	waveFormatEx.nBlockAlign = waveFormatEx.nChannels * (waveFormatEx.wBitsPerSample / 8);
-	waveFormatEx.nAvgBytesPerSec = waveFormatEx.nSamplesPerSec * waveFormatEx.nBlockAlign;
-	waveFormatEx.cbSize = 0;
-
-	if (FAILED(waveFile.Open(CA2W(toFileName), &waveFormatEx, NULL))) {
-		consoleLog("Failed to Open Wave File", true, false, true);
-		grooveCompressAudioPointer = gmaCodecMediaFactory->destroyInstance(1);
-
-		if (!memoryFromFile.close()) {
-			consoleLog("Failed to Close Memory File", true, false, true);
-		}
-		return false;
-	}
-
 	UINT sizeToWrite = grooveCompressAudioFormat.size;
 	// data is a terrible variable name - but I didn't choose the name, Microsoft/IBM did. And 3D Groove!
 	BYTE* data = new BYTE[sizeToWrite];
@@ -354,6 +334,32 @@ bool RegisterInterface::setupExtensionCallback(ID mediaFactoryID, bool unknown, 
 		return false;
 	}
 
+	if (!memoryFromFile.close()) {
+		consoleLog("Failed to Close Memory File", true, false, true);
+		delete[] data;
+		data = 0;
+		grooveCompressAudioPointer = gmaCodecMediaFactory->destroyInstance(1);
+		return false;
+	}
+
+	CWaveFile waveFile;
+	WAVEFORMATEX waveFormatEx;
+	waveFormatEx.wFormatTag = WAVE_FORMAT_PCM;
+	waveFormatEx.nChannels = grooveCompressAudioFormat.channels;
+	waveFormatEx.nSamplesPerSec = grooveCompressAudioFormat.samplesPerSec;
+	waveFormatEx.wBitsPerSample = grooveCompressAudioFormat.bitsPerSample;
+	waveFormatEx.nBlockAlign = waveFormatEx.nChannels * (waveFormatEx.wBitsPerSample / 8);
+	waveFormatEx.nAvgBytesPerSec = waveFormatEx.nSamplesPerSec * waveFormatEx.nBlockAlign;
+	waveFormatEx.cbSize = 0;
+
+	if (FAILED(waveFile.Open(CA2W(toFileName), &waveFormatEx, NULL))) {
+		consoleLog("Failed to Open Wave File", true, false, true);
+		delete[] data;
+		data = 0;
+		grooveCompressAudioPointer = gmaCodecMediaFactory->destroyInstance(1);
+		return false;
+	}
+
 	UINT sizeWrote = 0;
 
 	if (FAILED(waveFile.Write(sizeToWrite, data, &sizeWrote)) || sizeToWrite != sizeWrote) {
@@ -361,10 +367,6 @@ bool RegisterInterface::setupExtensionCallback(ID mediaFactoryID, bool unknown, 
 		delete[] data;
 		data = 0;
 		grooveCompressAudioPointer = gmaCodecMediaFactory->destroyInstance(1);
-
-		if (!memoryFromFile.close()) {
-			consoleLog("Failed to Close Memory File", true, false, true);
-		}
 		return false;
 	}
 
@@ -373,59 +375,12 @@ bool RegisterInterface::setupExtensionCallback(ID mediaFactoryID, bool unknown, 
 		delete[] data;
 		data = 0;
 		grooveCompressAudioPointer = gmaCodecMediaFactory->destroyInstance(1);
-
-		if (!memoryFromFile.close()) {
-			consoleLog("Failed to Close Memory File", true, false, true);
-		}
-		return false;
-	}
-
-	/*
-	HANDLE toFile = CreateFile(toFileName, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-
-	if (!toFile || toFile == INVALID_HANDLE_VALUE) {
-		consoleLog("Failed to Create File", true, false, true);
-		delete[] data;
-		data = 0;
-		grooveCompressAudioPointer = gmaCodecMediaFactory->destroyInstance(1);
-
-		if (!memoryFromFile.close()) {
-			consoleLog("Failed to Close Memory File", true, false, true);
-		}
-		return false;
-	}
-
-	DWORD numberOfBytesCopied = 0;
-
-	if (!WriteFile(toFile, &waveFile.riffHeader, sizeof(waveFile.riffHeader), &numberOfBytesCopied, NULL) || sizeof(waveFile.riffHeader) != numberOfBytesCopied) {
-		consoleLog("Failed to Write File", true, false, true);
-
-		if (!DeleteFile(toFileName)) {
-			consoleLog("Failed to Delete File", true, false, true);
-		}
-
-		delete[] data;
-		data = 0;
-		grooveCompressAudioPointer = gmaCodecMediaFactory->destroyInstance(1);
-
-		if (!memoryFromFile.close()) {
-			consoleLog("Failed to Close Memory File", true, false, true);
-		}
-		return false;
-	}
-	*/
-
-	grooveCompressAudioPointer = gmaCodecMediaFactory->destroyInstance(1);
-
-	if (!memoryFromFile.close()) {
-		consoleLog("Failed to Close Memory File", true, false, true);
-		delete[] data;
-		data = 0;
 		return false;
 	}
 
 	delete[] data;
 	data = 0;
+	grooveCompressAudioPointer = gmaCodecMediaFactory->destroyInstance(1);
 	return true;
 };
 
@@ -440,7 +395,7 @@ typedef bool(_cdecl *_SetupExtension)(int, MediaFactoryInterface*, RegisterInter
 typedef bool(_cdecl *_CloseExtension)(int, MediaFactoryInterface*);
 
 int main(int argc, char** argv) {
-	consoleLog("Groove Media Audio Converter 0.9.0");
+	consoleLog("Groove Media Audio Converter 0.9.1");
 	consoleLog("By Anthony Kleine", 2);
 
 	if (argc < 3 || stringsEqual(argv[1], "--help")) {
