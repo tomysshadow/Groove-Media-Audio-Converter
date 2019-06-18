@@ -53,7 +53,7 @@ typedef bool(_cdecl *_SetupExtension)(int, MediaFactoryInterface*, RegisterInter
 typedef bool(_cdecl *_CloseExtension)(int, MediaFactoryInterface*);
 
 int main(int argc, char** argv) {
-	consoleLog("Groove Media Audio Converter 0.9.7");
+	consoleLog("Groove Media Audio Converter 0.9.8");
 	consoleLog("By Anthony Kleine", 2);
 
 	if (argc < 3 || stringsEqual(argv[1], "--help")) {
@@ -91,7 +91,7 @@ int main(int argc, char** argv) {
 		return -1;
 	}
 
-	const wchar_t grooveMediaAudioExtensionIdentifierRedirection[64] = L"c32da10cae75fc4ab17d3d92d21156e2";
+	const wchar_t grooveMediaAudioExtensionIdentifierRedirection[GROOVE_EXTENSION_IDENTIFIER_REDIRECTION_SIZE] = L"c32da10cae75fc4ab17d3d92d21156e2";
 
 	if (!stringsEqualWide(grooveMediaAudioExtensionIdentifier.redirection, grooveMediaAudioExtensionIdentifierRedirection)) {
 		consoleLog("Missing Required Groove Player Extension (Groove Media Audio)", true, false, true);
