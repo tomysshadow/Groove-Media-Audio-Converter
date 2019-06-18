@@ -1,5 +1,4 @@
 #pragma once
-#include <iostream>
 #include <windows.h>
 
 inline bool stringsEqual(const char* leftHandSide, const char* rightHandSide);

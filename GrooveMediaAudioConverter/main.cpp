@@ -3,7 +3,7 @@
 #include "MediaFactoryInterface.h"
 #include "RegisterInterface.h"
 #include <windows.h>
-#include <string.h>
+#include <iostream>
 #include <ios>
 
 inline bool stringsEqual(const char* leftHandSide, const char* rightHandSide) {
@@ -53,7 +53,7 @@ typedef bool(_cdecl *_SetupExtension)(int, MediaFactoryInterface*, RegisterInter
 typedef bool(_cdecl *_CloseExtension)(int, MediaFactoryInterface*);
 
 int main(int argc, char** argv) {
-	consoleLog("Groove Media Audio Converter 0.9.8");
+	consoleLog("Groove Media Audio Converter 0.9.9");
 	consoleLog("By Anthony Kleine", 2);
 
 	if (argc < 3 || stringsEqual(argv[1], "--help")) {
