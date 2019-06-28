@@ -39,7 +39,7 @@ void help() {
 
 		consoleLog("Groove Media Audio is a proprietary audio codec by OTOY with 2x better compression than MP3. The codec may be used in WAVE Audio Files.", 2, 1);
 
-		consoleLog("Requires the Groove Media Audio Extension.", 2, 1);
+		consoleLog("Requires the Groove Media Audio Extension (GrooveMediaAudio.dll).", 2, 1);
 
 	consoleLog("Usage: GrooveMediaAudioConverter runaway.WAV runaway_converted.WAV");
 }
@@ -53,7 +53,7 @@ typedef bool(_cdecl *_SetupExtension)(int, MediaFactoryInterface*, RegisterInter
 typedef bool(_cdecl *_CloseExtension)(int, MediaFactoryInterface*);
 
 int main(int argc, char** argv) {
-	consoleLog("Groove Media Audio Converter 0.9.9");
+	consoleLog("Groove Media Audio Converter 1.0.0");
 	consoleLog("By Anthony Kleine", 2);
 
 	if (argc < 3 || stringsEqual(argv[1], "--help")) {
@@ -66,7 +66,7 @@ int main(int argc, char** argv) {
 	HMODULE groovePlayerExtension = LoadLibrary("GrooveMediaAudio.dll");
 
 	if (!groovePlayerExtension) {
-		consoleLog("Failed to Load Library", true, false, true);
+		consoleLog("Failed to Load Library (GrooveMediaAudio.dll)", true, false, true);
 		return -1;
 	}
 
@@ -82,7 +82,7 @@ int main(int argc, char** argv) {
 	const float GROOVE_PLAYER_EXTENSION_MINIMUM_VERSION = 1.0017701;
 
 	if (version < GROOVE_PLAYER_EXTENSION_MINIMUM_VERSION) {
-		consoleLog("Unsupported Version", true, false, true);
+		consoleLog("Unsupported Version of Groove Media Audio Extension", true, false, true);
 		return -1;
 	}
 

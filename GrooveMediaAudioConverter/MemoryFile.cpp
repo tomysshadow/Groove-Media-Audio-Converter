@@ -22,7 +22,7 @@ bool MemoryFile::open(LPCSTR fileName) {
 		buffer = NULL;
 	}
 
-	bufferSize = fileSize.QuadPart;
+	bufferSize = fileSize.LowPart;
 	buffer = new BYTE[bufferSize];
 
 	if (!buffer) {
