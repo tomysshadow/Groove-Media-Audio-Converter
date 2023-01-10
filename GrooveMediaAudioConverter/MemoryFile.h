@@ -1,37 +1,42 @@
 #pragma once
+#include "shared.h"
 #include <windows.h>
 
-enum REL_FILE_POS {
-	REL_FILE_POS_START,
-	REL_FILE_POS_RELATIVE,
-	REL_FILE_POS_END
-};
-
 class MemoryFile {
-public:
+	public:
 	bool open(LPCSTR fileName);
 	bool close();
 
+	enum MOVE_METHOD {
+		MOVE_METHOD_BEGIN,
+		MOVE_METHOD_CURRENT,
+		MOVE_METHOD_END
+	};
+
 	struct Read {
-		virtual int __thiscall incrementInstanceCount();
-		virtual int __thiscall decrementInstanceCount();
-		virtual MemoryFile::Read* __thiscall deleteInstance(bool free);
+		virtual int __thiscall incrementReferenceCount();
+		virtual int __thiscall decrementReferenceCount();
+		virtual Read* __thiscall release(bool free);
 		virtual size_t __thiscall getLength();
-		virtual size_t __thiscall getLengthUnsafe();
-		virtual size_t __thiscall getFilePos();
-		virtual size_t __thiscall setFilePos(size_t filePos, REL_FILE_POS relFilePos);
-		virtual size_t __thiscall readCount(unsigned char* destination, size_t count);
-		virtual unsigned char* __thiscall readRange(size_t posStart, size_t posEnd);
-		virtual void __thiscall doNothing();
+		virtual size_t __thiscall getRawLength();
+		virtual size_t __thiscall getPosition();
+		virtual size_t __thiscall setPosition(size_t distance, MOVE_METHOD moveMethod);
+		virtual size_t __thiscall readData(unsigned char* destination, size_t size);
+		virtual unsigned char* __thiscall readDataRange(size_t begin, size_t end);
+		virtual void __thiscall unknown();
 		virtual int __thiscall getFlags(int unknown);
-		int instanceCount = 0;
-		unsigned char* start = 0;
-		unsigned char* filePointer = 0;
+
+		int referenceCount = 0;
+
+		unsigned char* data = 0;
+		unsigned char* position = 0;
 		size_t length = 0;
 	};
 
-	HANDLE file;
-	SIZE_T bufferSize = 0;
-	PBYTE buffer = NULL;
+	HANDLE file = NULL;
+
+	SIZE_T dataSize = 0;
+	PBYTE data = NULL;
+
 	Read read;
 };

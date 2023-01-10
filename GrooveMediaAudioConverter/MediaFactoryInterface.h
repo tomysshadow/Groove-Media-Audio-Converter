@@ -1,9 +1,10 @@
 #pragma once
-#include "main.h"
+#include "shared.h"
 
-struct RegisterInterface;
+class RegisterInterface;
 
-struct MediaFactoryInterface {
+class MediaFactoryInterface {
+	public:
 	virtual void __thiscall unknown();
 	virtual bool __thiscall setupExtensionCallback(unsigned char* unknown, RegisterInterface* registerInterface);
 	virtual void __thiscall closeExtensionCallback(ID mediaFactoryID);

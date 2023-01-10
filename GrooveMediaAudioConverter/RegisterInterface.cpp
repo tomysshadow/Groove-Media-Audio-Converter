@@ -1,32 +1,26 @@
 #include "RegisterInterface.h"
-#include "main.h"
 #include "MemoryFile.h"
 #include "GrooveCompressAudio.h"
+#include <string>
 #include <windows.h>
 #include <atlbase.h>
 #include <dsound.h>
 #include <SDKwavefile.h>
 
+#define REGISTER_INTERFACE_OUT true, 1
+#define REGISTER_INTERFACE_ERR true, 1, true, __FILE__, __LINE__
+
+RegisterInterface::RegisterInterface(std::string fromFileName, std::string toFileName) : fromFileName(fromFileName), toFileName(toFileName) {
+}
+
 void RegisterInterface::unknown(bool unknown) {
-	consoleLog("Unknown of Register Interface");
-	return;
 }
 
 bool RegisterInterface::setupExtensionCallback(ID mediaFactoryID, bool unknown, GMACodecMediaFactory* gmaCodecMediaFactory) {
-	consoleLog("Setting Up Extension Callback of Register Interface");
+	consoleLog("Setting Up Register Interface Extension Callback", REGISTER_INTERFACE_OUT);
 
 	if (!gmaCodecMediaFactory) {
-		consoleLog("GMA Codec Media Factory cannot be NULL", true, false, true);
-		return false;
-	}
-
-	if (!fromFileName) {
-		consoleLog("From File Name cannot be NULL", true, false, true);
-		return false;
-	}
-
-	if (!toFileName) {
-		consoleLog("To File Name cannot be NULL", true, false, true);
+		consoleLog("gmaCodecMediaFactory must not be NULL", REGISTER_INTERFACE_ERR);
 		return false;
 	}
 
@@ -34,123 +28,130 @@ bool RegisterInterface::setupExtensionCallback(ID mediaFactoryID, bool unknown, 
 
 	for (size_t i = 0; i < ID_SIZE; i++) {
 		if (mediaFactoryID[i] != GMA_CODEC_MEDIA_FACTORY_ID[i]) {
-			consoleLog("GMA Codec Media Factory ID Does Not Match", true, false, true);
+			consoleLog("GMA Codec Media Factory ID Mismatch", REGISTER_INTERFACE_ERR);
 			return false;
 		}
 	}
 
-	MemoryFile memoryFromFile;
-	ID id = DEFAULT_ID;
-	Error err = 0;
-	// please don't delete me
-	memoryFromFile.read.incrementInstanceCount();
+	bool result = false;
 
-	if (!memoryFromFile.open(fromFileName)) {
-		consoleLog("Failed to Open Memory File", true, false, true);
-		return false;
+	// be sure to increment the reference count
+	MemoryFile memoryFile;
+	memoryFile.read.incrementReferenceCount();
+
+	if (!memoryFile.open(fromFileName.c_str())) {
+		consoleLog("Failed to Open Memory File", REGISTER_INTERFACE_ERR);
+		goto error;
 	}
 
-	GrooveCompressAudio* grooveCompressAudioPointer = gmaCodecMediaFactory->createInstance(&memoryFromFile.read, id, 0, &err);
+	int err = 0;
 
-	if (err || !grooveCompressAudioPointer) {
-		consoleLog("Failed to Create Instance of GMA Codec Media Factory", true, false, true);
+	ID id = {};
+	GrooveCompressAudio* grooveCompressAudioPointer = gmaCodecMediaFactory->create(&memoryFile.read, id, 0, &err);
 
-		if (!memoryFromFile.close()) {
-			consoleLog("Failed to Close Memory File", true, false, true);
+	if (!grooveCompressAudioPointer) {
+		consoleLog("grooveCompressAudioPointer must not be NULL", REGISTER_INTERFACE_ERR);
+		goto error2;
+	}
+
+	if (err) {
+		consoleLog("Failed to Create GMA Codec Media Factory Instance", REGISTER_INTERFACE_ERR);
+		goto error3;
+	}
+
+	SIZE_T dataSize = 0;
+	PBYTE data = NULL;
+
+	SIZE_T toFileNameSize = 0;
+	PCHAR _toFileName = NULL;
+
+	{
+		GrooveCompressAudioFormat grooveCompressAudioFormat;
+
+		if (!grooveCompressAudioPointer->getFormat(&grooveCompressAudioFormat)) {
+			consoleLog("Failed to Get Format", REGISTER_INTERFACE_ERR);
+			goto error3;
 		}
-		memoryFromFile.read.decrementInstanceCount();
-		return false;
-	}
 
-	GrooveCompressAudioFormat grooveCompressAudioFormat;
+		dataSize = grooveCompressAudioFormat.dataSize;
+		data = new BYTE[dataSize];
 
-	if (!grooveCompressAudioPointer->getFormat(&grooveCompressAudioFormat)) {
-		consoleLog("Failed to Get Format", true, false, true);
-		grooveCompressAudioPointer = gmaCodecMediaFactory->destroyInstance(1);
-
-		if (!memoryFromFile.close()) {
-			consoleLog("Failed to Close Memory File", true, false, true);
+		if (!data) {
+			consoleLog("Failed to Allocate data", REGISTER_INTERFACE_ERR);
+			goto error3;
 		}
-		memoryFromFile.read.decrementInstanceCount();
-		return false;
-	}
 
-	UINT sizeToWrite = grooveCompressAudioFormat.size;
-	// data is a terrible variable name - but I didn't choose the name, Microsoft/IBM did. And 3D Groove!
-	BYTE* data = new BYTE[sizeToWrite];
-
-	if (!data) {
-		consoleLog("Failed to Allocate data", true, false, true);
-		grooveCompressAudioPointer = gmaCodecMediaFactory->destroyInstance(1);
-
-		if (!memoryFromFile.close()) {
-			consoleLog("Failed to Close Memory File", true, false, true);
+		if (!grooveCompressAudioPointer->readData(data, dataSize)) {
+			consoleLog("Failed to Read Data", REGISTER_INTERFACE_ERR);
+			goto error4;
 		}
-		memoryFromFile.read.decrementInstanceCount();
-		return false;
-	}
 
-	if (!grooveCompressAudioPointer->getData(data, sizeToWrite)) {
-		consoleLog("Failed to Get Data", true, false, true);
-		delete[] data;
-		data = NULL;
-		grooveCompressAudioPointer = gmaCodecMediaFactory->destroyInstance(1);
+		{
+			CWaveFile waveFile = {};
 
-		if (!memoryFromFile.close()) {
-			consoleLog("Failed to Close Memory File", true, false, true);
+			SIZE_T toFileNameSize = toFileName.size() + 1;
+			PCHAR _toFileName = new CHAR[toFileNameSize];
+
+			if (!_toFileName) {
+				consoleLog("Failed to Allocate toFileName", REGISTER_INTERFACE_ERR);
+				goto error4;
+			}
+
+			if (strncpy_s(_toFileName, toFileNameSize, toFileName.c_str(), toFileNameSize)) {
+				consoleLog("Failed to Copy String Maximum", REGISTER_INTERFACE_ERR);
+				goto error5;
+			}
+
+			{
+				WAVEFORMATEX waveFormatEx = {};
+				waveFormatEx.wFormatTag = WAVE_FORMAT_PCM;
+				waveFormatEx.nChannels = grooveCompressAudioFormat.channels;
+				waveFormatEx.nSamplesPerSec = grooveCompressAudioFormat.samplesPerSec;
+				waveFormatEx.wBitsPerSample = grooveCompressAudioFormat.bitsPerSample;
+				waveFormatEx.nBlockAlign = waveFormatEx.nChannels * (waveFormatEx.wBitsPerSample / 8);
+				waveFormatEx.nAvgBytesPerSec = waveFormatEx.nSamplesPerSec * waveFormatEx.nBlockAlign;
+				waveFormatEx.cbSize = 0;
+
+				if (waveFile.Open(CA2W(_toFileName), &waveFormatEx, 0) != S_OK) {
+					consoleLog("Failed to Open Wave File", REGISTER_INTERFACE_ERR);
+					goto error5;
+				}
+
+				UINT sizeToWrite = dataSize;
+				UINT sizeWrote = 0;
+
+				if (waveFile.Write(sizeToWrite, data, &sizeWrote) != S_OK || sizeToWrite != sizeWrote) {
+					consoleLog("Failed to Write Wave File", REGISTER_INTERFACE_ERR);
+					goto error5;
+				}
+
+				if (waveFile.Close() != S_OK) {
+					consoleLog("Failed to Close Wave File", REGISTER_INTERFACE_ERR);
+					goto error5;
+				}
+			}
 		}
-		memoryFromFile.read.decrementInstanceCount();
-		return false;
 	}
 
-	if (!memoryFromFile.close()) {
-		consoleLog("Failed to Close Memory File", true, false, true);
-		delete[] data;
-		data = NULL;
-		grooveCompressAudioPointer = gmaCodecMediaFactory->destroyInstance(1);
-		return false;
-	}
-
-	memoryFromFile.read.decrementInstanceCount();
-	CWaveFile waveFile;
-	WAVEFORMATEX waveFormatEx;
-	waveFormatEx.wFormatTag = WAVE_FORMAT_PCM;
-	waveFormatEx.nChannels = grooveCompressAudioFormat.channels;
-	waveFormatEx.nSamplesPerSec = grooveCompressAudioFormat.samplesPerSec;
-	waveFormatEx.wBitsPerSample = grooveCompressAudioFormat.bitsPerSample;
-	waveFormatEx.nBlockAlign = waveFormatEx.nChannels * (waveFormatEx.wBitsPerSample / 8);
-	waveFormatEx.nAvgBytesPerSec = waveFormatEx.nSamplesPerSec * waveFormatEx.nBlockAlign;
-	waveFormatEx.cbSize = 0;
-
-	if (FAILED(waveFile.Open(CA2W(toFileName), &waveFormatEx, NULL))) {
-		consoleLog("Failed to Open Wave File", true, false, true);
-		delete[] data;
-		data = NULL;
-		grooveCompressAudioPointer = gmaCodecMediaFactory->destroyInstance(1);
-		return false;
-	}
-
-	UINT sizeWrote = 0;
-
-	if (FAILED(waveFile.Write(sizeToWrite, data, &sizeWrote)) || sizeToWrite != sizeWrote) {
-		consoleLog("Failed to Write Wave File", true, false, true);
-		delete[] data;
-		data = NULL;
-		grooveCompressAudioPointer = gmaCodecMediaFactory->destroyInstance(1);
-		return false;
-	}
-
-	if (FAILED(waveFile.Close())) {
-		consoleLog("Failed to Close Wave File", true, false, true);
-		delete[] data;
-		data = NULL;
-		grooveCompressAudioPointer = gmaCodecMediaFactory->destroyInstance(1);
-		return false;
-	}
-
+	result = true;
+	error5:
+	delete[] _toFileName;
+	_toFileName = NULL;
+	toFileNameSize = 0;
+	error4:
 	delete[] data;
 	data = NULL;
-	grooveCompressAudioPointer = gmaCodecMediaFactory->destroyInstance(1);
+	dataSize = 0;
+	error3:
+	grooveCompressAudioPointer = gmaCodecMediaFactory->destroy(true);
+	error2:
+	if (!memoryFile.close()) {
+		consoleLog("Failed to Close Memory File", REGISTER_INTERFACE_ERR);
+		result = false;
+		goto error;
+	}
+	error:
+	memoryFile.read.decrementReferenceCount();
 	return true;
 };
 

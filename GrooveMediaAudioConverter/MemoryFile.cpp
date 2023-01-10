@@ -1,232 +1,243 @@
 #include "MemoryFile.h"
-#include "main.h"
 #include <windows.h>
 
+#define MEMORY_FILE_OUT true, 1
+#define MEMORY_FILE_ERR true, 1, true, __FILE__, __LINE__
+
 bool MemoryFile::open(LPCSTR fileName) {
+	consoleLog("Opening Memory File", MEMORY_FILE_OUT);
+
+	if (!fileName) {
+		consoleLog("fileName must not be NULL", MEMORY_FILE_ERR);
+		return false;
+	}
+
 	file = CreateFile(fileName, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 
 	if (!file || file == INVALID_HANDLE_VALUE) {
-		consoleLog("Failed to Create File", true, false, true);
+		consoleLog("Failed to Create File", MEMORY_FILE_ERR);
 		return false;
 	}
 
-	LARGE_INTEGER fileSize;
+	LARGE_INTEGER fileSize = {};
+	fileSize.QuadPart = 0;
 
 	if (!GetFileSizeEx(file, &fileSize)) {
-		consoleLog("Failed to Get File Size Ex", true, false, true);
+		consoleLog("Failed to Get File Size", MEMORY_FILE_ERR);
 		return false;
 	}
 
-	if (buffer) {
-		delete[] buffer;
-		buffer = NULL;
+	if (data) {
+		delete[] data;
+		data = NULL;
 	}
 
-	bufferSize = fileSize.LowPart;
-	buffer = new BYTE[bufferSize];
+	dataSize = (SIZE_T)fileSize.QuadPart;
+	data = new BYTE[dataSize];
 
-	if (!buffer) {
-		consoleLog("Failed to Allocate buffer", true, false, true);
+	if (!data) {
+		consoleLog("Failed to Allocate data", MEMORY_FILE_ERR);
 		return false;
 	}
 
-	SIZE_T numberOfBytesCopied = 0;
+	bool result = false;
 
-	if (!ReadFile(file, buffer, bufferSize, &numberOfBytesCopied, NULL) || !buffer || bufferSize != numberOfBytesCopied) {
-		consoleLog("Failed to Read File", true, false, true);
-		delete[] buffer;
-		buffer = NULL;
-		return false;
+	if (!readFileSafe(file, data, dataSize)) {
+		consoleLog("Failed to Read File Safe", MEMORY_FILE_ERR);
+		goto error;
 	}
 
-	read.start = buffer;
-	read.filePointer = buffer;
-	read.length = bufferSize;
+	read.data = data;
+	read.position = data;
+	read.length = dataSize;
 
-	return true;
+	result = true;
+	error:
+	if (!result) {
+		delete[] data;
+		data = NULL;
+		dataSize = 0;
+	}
+	return result;
 }
 
 bool MemoryFile::close() {
-	if (buffer) {
-		delete[] buffer;
-		buffer = NULL;
+	consoleLog("Closing Memory File", MEMORY_FILE_OUT);
+
+	if (data) {
+		delete[] data;
+		data = NULL;
 	}
 
-	bufferSize = 0;
+	dataSize = 0;
 
 	if (file || file != INVALID_HANDLE_VALUE) {
 		if (!CloseHandle(file)) {
-			consoleLog("Failed to Close File Handle", true, false, true);
+			consoleLog("Failed to Close File Handle", MEMORY_FILE_ERR);
 			return false;
 		}
 	}
-
 	return true;
 }
 
-int __thiscall MemoryFile::Read::incrementInstanceCount() {
-	consoleLog("Incrementing Instance Count of Memory File Read");
-
-	return ++instanceCount;
+int __thiscall MemoryFile::Read::incrementReferenceCount() {
+	consoleLog("Incrementing Read Reference Count", MEMORY_FILE_OUT);
+	return ++referenceCount;
 }
 
-int __thiscall MemoryFile::Read::decrementInstanceCount() {
-	consoleLog("Decrementing Instance Count of Memory File Read");
+int __thiscall MemoryFile::Read::decrementReferenceCount() {
+	consoleLog("Decrementing Read Reference Count", MEMORY_FILE_OUT);
 
-	instanceCount--;
+	referenceCount--;
 
-	if (!instanceCount) {
-		deleteInstance(1);
+	if (!referenceCount) {
+		release(true);
 		return 0;
 	}
-
-	return instanceCount;
+	return referenceCount;
 }
 
-MemoryFile::Read* __thiscall MemoryFile::Read::deleteInstance(bool free) {
-	consoleLog("Deleting Instance of Memory File Read");
+MemoryFile::Read* __thiscall MemoryFile::Read::release(bool free) {
+	consoleLog("Deleting Read Instance", MEMORY_FILE_OUT);
 
-	start = 0;
-	filePointer = 0;
+	data = 0;
+	position = 0;
 	length = 0;
 
 	if (free) {
 		delete this;
+		return 0;
 	}
-
 	return this;
 }
 
 size_t __thiscall MemoryFile::Read::getLength() {
-	consoleLog("Getting Length of Memory File Read");
+	consoleLog("Getting Read Length", MEMORY_FILE_OUT);
 
-	if (!start) {
+	if (!data) {
 		return -1;
 	}
-
 	return length;
 }
 
-size_t __thiscall MemoryFile::Read::getLengthUnsafe() {
-	consoleLog("Getting Length Unsafe of Memory File Read");
-
+size_t __thiscall MemoryFile::Read::getRawLength() {
+	consoleLog("Getting Read Raw Length", MEMORY_FILE_OUT);
 	return length;
 }
 
-size_t __thiscall MemoryFile::Read::getFilePos() {
-	consoleLog("Getting File Pos of Memory File Read");
+size_t __thiscall MemoryFile::Read::getPosition() {
+	consoleLog("Getting Read Position", MEMORY_FILE_OUT);
 
-	if (!start) {
+	if (!data) {
 		return -1;
 	}
-
-	return filePointer - start;
+	return position - data;
 }
 
-size_t __thiscall MemoryFile::Read::setFilePos(size_t filePos, REL_FILE_POS relFilePos) {
-	consoleLog("Setting File Pos of Memory File Read");
+size_t __thiscall MemoryFile::Read::setPosition(size_t distance, MOVE_METHOD moveMethod) {
+	consoleLog("Setting Read Position", MEMORY_FILE_OUT);
 
-	if (!start) {
+	if (!data) {
 		return -1;
 	}
 
-	size_t filePosOld = filePointer - start;
-	size_t rel = 0;
+	size_t current = position - data;
 
-	switch (relFilePos) {
-		case REL_FILE_POS_START:
-		break;
-		case REL_FILE_POS_RELATIVE:
-		rel = filePosOld;
-		break;
-		case REL_FILE_POS_END:
-		rel = length;
-		break;
-		default:
+	size_t move = (moveMethod == MOVE_METHOD_BEGIN) ? 0 :
+		(moveMethod == MOVE_METHOD_CURRENT) ? current :
+		(moveMethod == MOVE_METHOD_END) ? length : -1;
+
+	if (move == -1) {
 		return -1;
 	}
 
-	filePos = rel + filePos;
+	distance += move;
 
-	if (filePos < 0 || filePos > length) {
+	if (distance < 0 || distance > length) {
 		return -1;
 	}
 
-	filePointer = start + filePos;
-
-	return filePosOld;
+	position = data + distance;
+	return current;
 }
 
-size_t __thiscall MemoryFile::Read::readCount(unsigned char* destination, size_t count) {
-	consoleLog("Reading Count of Memory File Read");
+size_t __thiscall MemoryFile::Read::readData(unsigned char* destination, size_t size) {
+	consoleLog("Reading Read Data", MEMORY_FILE_OUT);
 
-	if (!start) {
+	if (!data) {
 		return -1;
 	}
 
-	size_t maxCount = start + length - filePointer;
+	size_t maxSize = data + length - position;
 
-	if (maxCount < count) {
-		count = maxCount;
+	if (maxSize < size) {
+		size = maxSize;
 	}
 
-	if (count > 0) {
-		if (memcpy_s(destination, count, filePointer, count)) {
+	if (size > 0) {
+		if (memcpy_s(destination, size, position, size)) {
 			return -1;
 		}
 
-		filePointer += count;
+		position += size;
 	}
-
-	return count;
+	return size;
 }
 
-unsigned char* __thiscall MemoryFile::Read::readRange(size_t posStart, size_t posEnd) {
-	consoleLog("Reading Range of Memory File Read");
+unsigned char* __thiscall MemoryFile::Read::readDataRange(size_t begin, size_t end) {
+	consoleLog("Reading Read Data Range", MEMORY_FILE_OUT);
 
 	unsigned char* range = 0;
 
-	if (!start || posEnd <= posStart || posStart > length) {
+	if (!data || end <= begin || begin > length) {
 		return range;
 	}
 
-	if (posEnd != -1) {
-		if (posEnd > length) {
+	if (end != -1) {
+		if (end > length) {
 			return range;
 		}
 
-		posEnd = length;
+		end = length;
 	}
 
-	size_t count = posEnd - posStart;
-	range = new unsigned char[count];
+	size_t rangeSize = end - begin;
+	range = new unsigned char[rangeSize];
+	ZeroMemory(range, rangeSize);
 
 	if (!range) {
-		consoleLog("Failed to Allocate range", true, false, true);
+		consoleLog("Failed to Allocate range", MEMORY_FILE_ERR);
 		return range;
 	}
 
-	if (memcpy_s(range, count, start + posStart, count)) {
+	bool result = false;
+
+	if (memcpy_s(range, rangeSize, data + begin, rangeSize)) {
+		consoleLog("Failed to Copy Memory", MEMORY_FILE_ERR);
+		goto error;
+	}
+
+	result = true;
+	error:
+	if (!result) {
 		delete[] range;
 		range = 0;
-		return range;
+		rangeSize = 0;
 	}
-
 	return range;
 }
 
-void MemoryFile::Read::doNothing() {
-	consoleLog("Doing Nothing with Memory File Read");
-
-	return;
+void MemoryFile::Read::unknown() {
 }
 
 int __thiscall MemoryFile::Read::getFlags(int unknown) {
-	consoleLog("Getting Flags of Memory File Read");
+	consoleLog("Getting Read Flags", MEMORY_FILE_OUT);
 
-	if (start) {
-		return 11;
+	const int OPEN = 11;
+	const int CLOSED = 3;
+
+	if (data) {
+		return OPEN;
 	}
-
-	return 3;
+	return CLOSED;
 }

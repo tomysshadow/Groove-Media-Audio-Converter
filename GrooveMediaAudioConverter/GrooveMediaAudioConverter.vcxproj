@@ -138,18 +138,23 @@
     <ClCompile Include="MediaFactoryInterface.cpp" />
     <ClCompile Include="MemoryFile.cpp" />
     <ClCompile Include="RegisterInterface.cpp" />
+    <ClCompile Include="shared.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="GMACodecMediaFactory.h" />
     <ClInclude Include="GrooveCompressAudio.h" />
     <ClInclude Include="GrooveExtensionIdentifier.h" />
-    <ClInclude Include="main.h" />
     <ClInclude Include="MediaFactoryInterface.h" />
     <ClInclude Include="MemoryFile.h" />
     <ClInclude Include="RegisterInterface.h" />
+    <ClInclude Include="resource.h" />
+    <ClInclude Include="shared.h" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="..\README.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="GrooveMediaAudioConverter.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

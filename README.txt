@@ -1,4 +1,4 @@
-Groove Media Audio Converter 1.0.1
+Groove Media Audio Converter 1.1.0
 By Anthony Kleine
 
 	This command line tool converts the Groove Media Audio (GMA) codec used by 3D Groove GX to PCM.
