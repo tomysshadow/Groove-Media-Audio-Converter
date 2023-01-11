@@ -222,7 +222,6 @@ unsigned char* __thiscall MemoryFile::Read::readDataRange(size_t begin, size_t e
 	if (!result) {
 		delete[] range;
 		range = 0;
-		rangeSize = 0;
 	}
 	return range;
 }

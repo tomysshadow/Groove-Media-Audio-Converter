@@ -24,7 +24,7 @@ void help() {
 }
 
 int main(int argc, char** argv) {
-	consoleLog("Groove Media Audio Converter 1.1.0");
+	consoleLog("Groove Media Audio Converter 1.1.1");
 	consoleLog("By Anthony Kleine", 2);
 
 	const int MIN_ARGC = 3;

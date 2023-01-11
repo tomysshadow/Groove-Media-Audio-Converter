@@ -62,7 +62,7 @@ bool RegisterInterface::setupExtensionCallback(ID mediaFactoryID, bool unknown, 
 	SIZE_T dataSize = 0;
 	PBYTE data = NULL;
 
-	SIZE_T toFileNameSize = 0;
+	SIZE_T _toFileNameSize = 0;
 	PCHAR _toFileName = NULL;
 
 	{
@@ -89,15 +89,15 @@ bool RegisterInterface::setupExtensionCallback(ID mediaFactoryID, bool unknown, 
 		{
 			CWaveFile waveFile = {};
 
-			SIZE_T toFileNameSize = toFileName.size() + 1;
-			PCHAR _toFileName = new CHAR[toFileNameSize];
+			_toFileNameSize = toFileName.size() + 1;
+			_toFileName = new CHAR[_toFileNameSize];
 
 			if (!_toFileName) {
 				consoleLog("Failed to Allocate toFileName", REGISTER_INTERFACE_ERR);
 				goto error4;
 			}
 
-			if (strncpy_s(_toFileName, toFileNameSize, toFileName.c_str(), toFileNameSize)) {
+			if (strncpy_s(_toFileName, _toFileNameSize, toFileName.c_str(), _toFileNameSize)) {
 				consoleLog("Failed to Copy String Maximum", REGISTER_INTERFACE_ERR);
 				goto error5;
 			}
@@ -137,11 +137,9 @@ bool RegisterInterface::setupExtensionCallback(ID mediaFactoryID, bool unknown, 
 	error5:
 	delete[] _toFileName;
 	_toFileName = NULL;
-	toFileNameSize = 0;
 	error4:
 	delete[] data;
 	data = NULL;
-	dataSize = 0;
 	error3:
 	grooveCompressAudioPointer = gmaCodecMediaFactory->destroy(true);
 	error2:
