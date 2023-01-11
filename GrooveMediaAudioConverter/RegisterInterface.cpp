@@ -63,7 +63,7 @@ bool RegisterInterface::setupExtensionCallback(ID mediaFactoryID, bool unknown, 
 	PBYTE data = NULL;
 
 	SIZE_T _toFileNameSize = 0;
-	PCHAR _toFileName = NULL;
+	LPSTR _toFileName = NULL;
 
 	{
 		GrooveCompressAudioFormat grooveCompressAudioFormat;
